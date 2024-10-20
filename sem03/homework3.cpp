@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
-#include "papi.h"
+#include <papi.h>
+#include <cstdio>
 
 class CSR_graph {
 public:
@@ -54,10 +55,35 @@ int main () {
     filenames[3] = "youtube";
     filenames[4] = "syn_rmat";
 
-    PAPI_library_init(7);
+    int version = PAPI_library_init(PAPI_VER_CURRENT);
+    if (version != PAPI_VER_CURRENT) {
+        std::cout << "ERROR: Init. Version: " << version << std::endl;
+    }
+
+    int event_code;
+    int check_event_code = PAPI_event_name_to_code("perf::CYCLES", &event_code);
+    if (check_event_code != PAPI_OK) {
+        std::cout << "ERROR: Event code --> " << check_event_code << std::endl;
+    }
+
     int eventset = PAPI_NULL;
-    PAPI_create_eventset(&eventset);
-    PAPI_add_event(eventset, PAPI_L1_TCM);
+    if (PAPI_create_eventset(&eventset) != PAPI_OK) {
+        std::cout << "ERROR: Create" << std::endl;
+    }
+    int check_add1 = PAPI_add_event(eventset, PAPI_L1_DCM);
+    if (check_add1 != PAPI_OK) {
+        std::cout << "ERROR: Add1 --> " << check_add1 << std::endl;
+    }
+    
+    int check_add2 = PAPI_add_event(eventset, PAPI_L2_DCM);
+    if (check_add2 != PAPI_OK) {
+        std::cout << "ERROR: Add2 --> " << check_add2 << std::endl;
+    }
+
+    int check_add3 = PAPI_add_event(eventset, event_code);
+    if (check_add3 != PAPI_OK) {
+        std::cout << "ERROR: Add3 --> " << check_add3 << std::endl;
+    }
 
     
     /* https://drive.google.com/file/d/183OMIj56zhqN12Aui1kxv76_Ia0vTPIF/view?usp=sharing архив с тестами, 
@@ -67,11 +93,13 @@ int main () {
     for (int n_test = 0; n_test < N_TESTS; n_test++) {
         CSR_graph a;
         a.read(filenames[n_test]);
-        long long info[1];
+        long long info[3];
 
 
 /*----------------------------<TASK 1>----------------------------*/
-        PAPI_start(eventset);
+        if (PAPI_start(eventset) != PAPI_OK) {
+            std::cout << "ERROR: Start" << std::endl;
+        }
 
         double max_weight = 0;
         int max_vertex = -1;
@@ -98,9 +126,12 @@ int main () {
             }
         }
         std::cout << "max_vertex_sum: " << max_vertex << std::endl;
-        std::cout << "PAPI_read_sum: " << PAPI_read(eventset, info) << std::endl;
 
-        PAPI_stop(eventset, NULL);
+        PAPI_stop(eventset, info);
+
+        std::cout << "1PAPI_L1_DCM: " << info[0] << std::endl;
+        std::cout << "1PAPI_L2_DCM: " << info[1] << std::endl;
+        std::cout << "1PAPI native: " << info[2] << std::endl;
 
 /*----------------------------<TASK 2>----------------------------*/
         PAPI_start(eventset);
@@ -108,20 +139,20 @@ int main () {
         double max_rank = 0;
         int max_vert = -1;
         for (int row = 0; row < a.row_count; row++) {
-            int start_i = a.row_ptr[row];
-            int end_i = a.row_ptr[row + 1];
+            unsigned int start_i = a.row_ptr[row];
+            unsigned int end_i = a.row_ptr[row + 1];
             double rank = 0;
-            for (int i = start_i; i < end_i; i++) {
+            for (unsigned int i = start_i; i < end_i; i++) {
                 int dest = a.col_ids[i];
                 double weight_i = a.vals[i];
                 double sum = 0;
-                int start_j = a.row_ptr[dest];
-                int end_j = a.row_ptr[dest + 1];
+                unsigned int start_j = a.row_ptr[dest];
+                unsigned int end_j = a.row_ptr[dest + 1];
                 
-                for (int j = start_j; j < end_j; j++) {
+                for (unsigned int j = start_j; j < end_j; j++) {
                     double weight_j = a.vals[j];
-                    int vert = a.col_ids[j];
-                    int count_inc_edges = a.row_ptr[vert + 1] - a.row_ptr[vert];
+                    unsigned int vert = a.col_ids[j];
+                    unsigned int count_inc_edges = a.row_ptr[vert + 1] - a.row_ptr[vert];
                     sum += weight_j * count_inc_edges;
                 }
                 rank += weight_i * sum;
@@ -138,9 +169,12 @@ int main () {
             }
         }
         std::cout << "max_vertex_rank: " << max_vert << std::endl;
-        std::cout << "PAPI_read_rank: " << PAPI_read(eventset, info) << std::endl;
 
-        PAPI_stop(eventset, NULL);
+        PAPI_stop(eventset, info);
+
+        std::cout << "2PAPI_L1_DCM: " << info[0] << std::endl;
+        std::cout << "2PAPI_L2_DCM: " << info[1] << std::endl;
+        std::cout << "2PAPI native: " << info[2] << std::endl;
 /*----------------------------------------------------------------*/
         
         a.reset();
