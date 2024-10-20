@@ -74,7 +74,7 @@ int main () {
         PAPI_start(eventset);
 
         double max_weight = 0;
-        double max_vertex = -1;
+        int max_vertex = -1;
         for (int row = 0; row < a.row_count; row++) {
             int start_i = a.row_ptr[row];
             int end_i = a.row_ptr[row + 1];
@@ -105,7 +105,7 @@ int main () {
 /*----------------------------<TASK 2>----------------------------*/
         PAPI_start(eventset);
 
-        int max_rank = 0;
+        double max_rank = 0;
         int max_vert = -1;
         for (int row = 0; row < a.row_count; row++) {
             int start_i = a.row_ptr[row];
