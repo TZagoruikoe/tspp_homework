@@ -6,8 +6,6 @@
 #include <sys/time.h>
 #include <omp.h>
 
-#define NUM 100
-
 static double rtclock() {
     struct timeval Tp;
     int stat;
@@ -17,10 +15,6 @@ static double rtclock() {
         printf ("Error return from gettimeofday: %d", stat);
 
     return (Tp.tv_sec + Tp.tv_usec * 1.0e-6);
-}
-
-inline double frand(double a, double b) {
-	return a + (b - a) * (rand() / double(RAND_MAX));
 }
 
 int main(int argc, char** argv) {
