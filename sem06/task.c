@@ -17,10 +17,10 @@ static double rtclock() {
 }
 
 void get_array(int n, int* arr) {
-    srand(2);
+    srand(time(NULL));
 
     for (int i = 0; i < n; i++) {
-        arr[i] = rand() % 100;
+        arr[i] = rand();
     }
     
 }
