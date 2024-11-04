@@ -109,6 +109,13 @@ int main(int argc, char** argv) {
 }
     merge_t_end = rtclock();
 
+    if (memcmp(array, copy_arr, n) == 0) {
+        printf("GOOD\n");
+    }
+    else {
+        printf("ERROR\n");
+    }
+
     printf("Elapsed q_time: %lf\n", q_t_end - q_t_start);
     printf("Elapsed merge_time: %lf\n", merge_t_end - merge_t_start);    
     
