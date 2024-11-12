@@ -6,10 +6,11 @@
 #define N 128
 #define MAX_ITER 1000
 
-void initialize_grid(double *grid, int rows, int cols) {
+void initialize_grid(double *grid, int rows, int cols, int rank) {
     for (int i = 1; i < rows - 1; i++) {
+        srand(rank * rows + i);
         for (int j = 1; j < cols - 1; j++) {
-            grid[i * cols + j] = rand() / (double)RAND_MAX;
+            grid[i * cols + j] = rand() / (double)RAND_MAX; //sin(j / (double)cols);
         }
     }
 }
@@ -36,7 +37,7 @@ int main(int argc, char **argv) {
     double *grid = (double*)calloc(total_rows * N, sizeof(double));
     double *new_grid = (double*)calloc(total_rows * N, sizeof(double));
 
-    initialize_grid(grid, rows_per_process, N);
+    initialize_grid(grid, total_rows, N, rank);
 
     for (int iter = 0; iter < MAX_ITER; iter++) {
         if (size > 1) {
@@ -53,7 +54,7 @@ int main(int argc, char **argv) {
             }
         }
 
-        for (int i = 1; i < rows_per_process - 1; i++) {
+        for (int i = 1; i < total_rows - 1; i++) {
             for (int j = 1; j < N - 1; j++) {
                 new_grid[i * N + j] = 0.25 * (grid[(i - 1) * N + j] + grid[(i + 1) * N + j] +
                                               grid[i * N + (j - 1)] + grid[i * N + (j + 1)]);
@@ -65,7 +66,7 @@ int main(int argc, char **argv) {
         new_grid = temp;
     }
     
-    double norm = compute_norm(new_grid, grid, rows_per_process, N);
+    double norm = compute_norm(new_grid, grid, total_rows, N);
         
     double global_norm;
     MPI_Allreduce(&norm, &global_norm, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -77,5 +78,6 @@ int main(int argc, char **argv) {
     free(grid);
     free(new_grid);
     MPI_Finalize();
+
     return 0;
 }
