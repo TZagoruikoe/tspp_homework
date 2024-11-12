@@ -3,14 +3,14 @@
 #include <math.h>
 #include <mpi.h>
 
-#define N 128
-#define MAX_ITER 1000
+#define N 1024
+#define MAX_ITER 10000
 
 void initialize_grid(double *grid, int rows, int cols, int rank) {
     for (int i = 1; i < rows - 1; i++) {
-        srand(rank * rows + i);
+        srand(rank * (rows - 2) + i);
         for (int j = 1; j < cols - 1; j++) {
-            grid[i * cols + j] = rand() / (double)RAND_MAX; //sin(j / (double)cols);
+            grid[i * cols + j] = rand() / (double)RAND_MAX;
         }
     }
 }
@@ -28,6 +28,7 @@ double compute_norm(double *old_grid, double *new_grid, int rows, int cols) {
 
 int main(int argc, char **argv) {
     int rank, size;
+    double start, end;
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -39,6 +40,8 @@ int main(int argc, char **argv) {
 
     initialize_grid(grid, total_rows, N, rank);
 
+
+    start = MPI_Wtime();
     for (int iter = 0; iter < MAX_ITER; iter++) {
         if (size > 1) {
             if (rank > 0 && rank < size - 1) {
@@ -70,9 +73,11 @@ int main(int argc, char **argv) {
         
     double global_norm;
     MPI_Allreduce(&norm, &global_norm, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    end = MPI_Wtime();
         
     if (rank == 0) {
         printf("Norm: %lf\n", sqrt(global_norm));
+        printf("Time: %lf\n", end - start);
     }
 
     free(grid);
